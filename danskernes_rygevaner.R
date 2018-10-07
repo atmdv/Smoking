@@ -1,7 +1,9 @@
+rm(list=ls())
+
 pacman::p_load(haven, dplyr, ggplot2)
 
 # Load raw data from SIF
-danskernes_rygevaner <- read_dta("C:/Users/Andreas Tyge Moller/Documents/DR_samlet.dta")
+danskernes_rygevaner <- read_dta("C:/Users/Andreas Tyge Moller/Google Drive/Rygefrekvenser/DR_samlet.dta")
 
 # After 1997 data are available annually
 danskernes_rygevaner <- danskernes_rygevaner[which(danskernes_rygevaner$year>1997), ]
