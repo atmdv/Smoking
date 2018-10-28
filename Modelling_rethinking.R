@@ -13,10 +13,12 @@ options(mc.cores = parallel::detectCores())
 # Only complete data points are useable in the model
 danskernes_rygevaner$age_group <- coerce_index(danskernes_rygevaner$alder7)
 danskernes_rygevaner$smoker <- danskernes_rygevaner$smoker*1
+danskernes_rygevaner$year <- coerce_index(danskernes_rygevaner$year)
 danskernes_rygevaner$female <- danskernes_rygevaner$female*1
+# danskernes_rygevaner$female <- ifelse(danskernes_rygevaner$female==TRUE, 1, -1)
 
 model_data <- danskernes_rygevaner %>% 
-  select(smoker, female, age_group) %>% 
+  select(smoker, female, age_group, year) %>% 
   filter(complete.cases(.))
 
 model_data <- data.frame(model_data)
@@ -111,7 +113,7 @@ model.6 <- map2stan(
 precis(model.6, depth=2)
 
 # Model #7 - Smoking frequency partially pooled over age group, slopes varying by gender
-# (Model 6, but modelled as divergences from mean
+# Model 6, but modelled as divergences from mean
 model.7 <- map2stan(
   alist(
     smoker ~ dbinom(1, p),
@@ -128,9 +130,70 @@ model.7 <- map2stan(
 
 precis(model.7, depth=2)
 
-models <- list(model.1, model.2, model.3, model.4, model.5, model.6, model.7)
+# Model #8 - Smoking frequency and slopes partially pooled over age group, effect of gender varies by age group
+# keep parameterization non-centered as in model 7
+model.8 <- map2stan(
+  alist(
+    smoker ~ dbinom(1, p),
+    logit(p) <- a_age[age_group] + bf_age[age_group]*female,
+    c(a_age, bf_age)[age_group] ~ dmvnorm2(c(a, bf), sigma_age, Rho),
+    a ~ dnorm(0,1),
+    bf ~ dnorm(0,1),
+    sigma_age ~ dcauchy(0, 2),
+    Rho ~ dlkjcorr(2)
+  ),
+  data=model_data,
+  warmup=1000, 
+  iter=1000,
+  chains=4,
+  cores=3,
+  control=list(adapt_delta=0.9)
+)
 
-save(models, file="temp_models")
+precis(model.8, depth=2)
+plot(precis(model.8, pars=c("a_age"), depth=2))
+
+# plot(model.8)
+# pairs(model.8, pars=c("a", "Rho"))
+# check_n_eff(model.8)
+# check_treedepth(model.8)
+
+
+# Model #9 - Smoking frequency and slopes partially pooled over age group, effect of gender varies by age group
+# non-centered parameterization
+model.9 <- map2stan(
+  alist(
+    smoker ~ dbinom(1, p),
+    logit(p) <- AGE + (BF + BY*BF)*female,
+    AGE <- a + a_age[age_group] + a_year[year],
+    BF <- bf + bf_age[age_group] + bf_year[year],
+    BY <- by + by_age[age_group] + by_year[year],
+    c(a_age, bf_age, by_age)[age_group] ~ dmvnormNC(sigma_age_group, Rho_age_group),
+    c(a_year, bf_year, by_year)[year] ~ dmvnormNC(sigma_year, Rho_year),
+    c(a, bf, by) ~ dnorm(0,1),
+    sigma_age_group ~ dcauchy(0, 2),
+    sigma_year ~ dcauchy(0, 2),
+    Rho_age_group ~ dlkjcorr(4),
+    Rho_year ~ dlkjcorr(4)
+  ),
+  data=model_data,
+  warmup=1000, 
+  iter=4000,
+  chains=3,
+  cores=3
+)
+
+p.9 <- link(model.9)
+p.9_mean <- apply(p.9$AGE, 2, mean)
+p.9_PI <- apply(p.9$AGE, 2, PI, prob=0.95)
+
+precis(model.9, depth=2)
+plot(model.9)
+save(model.9, file="model9")
+load("model9")
+
+# models <- list(model.1, model.2, model.3, model.4, model.5, model.6, model.7)
+# save(models, file="temp_models")
 
 # # aarsdummies <- as.data.frame(model.matrix(~ year, modeldata))
 # # indkomstdummies <-  as.data.frame(model.matrix(~ factor(indkomst_13), modeldata))
