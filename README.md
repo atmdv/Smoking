@@ -1,5 +1,5 @@
-Surveys on smoking habits are not used effectively
---------------------------------------------------
+Surveys on smoking habits can be analyzed more effectively
+----------------------------------------------------------
 
 The smoking habits of Danish youth is frequently discussed these days, with retailers and politicians competing to announce new measures and proposals for curbing youth smoking.
 
@@ -14,27 +14,19 @@ This is where multilevel modelling comes in.
 What the smoking rates look like
 --------------------------------
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Unfortunately the data behind the official smoking rates is unfortunately not publicly available. The data are available annually after 1997, with a missing year in 2008. The smoking rates have experienced a consistent downward trend over the past 20 years.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+![](README_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
-``` r
-summary(cars)
-```
+Data contain lots of variables, the majority of which are not fully consistent over the years. Here I'll focus on the most central stratefication variables as well as the main question "Do you smoke?". These variables have been consistently collected since 2008, before which the survey setup was somewhat different.
 
-    ##      speed           dist       
-    ##  Min.   : 4.0   Min.   :  2.00  
-    ##  1st Qu.:12.0   1st Qu.: 26.00  
-    ##  Median :15.0   Median : 36.00  
-    ##  Mean   :15.4   Mean   : 42.98  
-    ##  3rd Qu.:19.0   3rd Qu.: 56.00  
-    ##  Max.   :25.0   Max.   :120.00
+Since 2009 the smoking rate for young people (aged 16-29) has followed the overall smoking rate, but with larger deviations due to the smaller sample size (roughly 20 percent of the sample is below 30 years of age.).
 
-Including Plots
----------------
+![](README_files/figure-markdown_github/unnamed-chunk-4-1.png)
 
-You can also embed plots, for example:
+I've added some error bars showing two standard deviations to get a feel for the sample size. Looking at the two plots already gives cause for concern about the reliability of the stratification of the survey sample. The pattern of the overall smoking rate in 2014-2016 looks like it's driven by noise. Comparing young people to the rest of the population, the changes from year to year are implausibly large, and young people seem to have smoking rates inversely correlated with the rest of the sample. Not much can be learned by looking at the changes from one year to the next.
 
-![](README_files/figure-markdown_github/pressure-1.png)
+Enter Bayesian data analysis
+----------------------------
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Stay tuned...
