@@ -106,7 +106,107 @@ rates inversely correlated with the rest of the sample. Not much can be learned
 by looking at the changes from one year to the next. 
 
 ## Enter Bayesian data analysis
-Stay tuned...
+So what can we do to improve out understanding of the survey data? Bayesian 
+modelling will allow us to incorporate prior knowledge into the data analysis.
+Why is this is useful? We've already realized that the swings in the smoking
+rate from year to year are implausible because we have an idea about how smoking
+rates change over time. The Bayesian approach allow us to incorporate this
+knowledge through a prior distribution.
+
+To get a sense of how this works, I've estimated a simple model where the
+smoking rates depend only on the year, but allow for there to be a relationship
+between rates in different years. Below is what the data looks like.
+
+```{r, echo=FALSE}
+danskernes_rygevaner$smoker <- danskernes_rygevaner$smoker
+danskernes_rygevaner$year <- as.factor(danskernes_rygevaner$year)
+danskernes_rygevaner$female <- danskernes_rygevaner$KOEN - 1
+attr(danskernes_rygevaner$female, "ATT") <- NULL
+danskernes_rygevaner$age_group <- as.factor(danskernes_rygevaner$alder7)
+model_data <- danskernes_rygevaner %>% 
+  select(smoker, female, age_group, year) %>% 
+  filter(complete.cases(.))
+model_data <- data.frame(model_data)
+```
+```{r}
+str(model_data)
+```
+```{r eval=FALSE}
+m1 <- stan_glmer(formula = smoker ~ 1 + (1 | year),
+                family = binomial(link = "logit"),
+                data = model_data)
+```
+```{r, echo=FALSE}
+load("rstanarm_m1.RData")
+## Posterior mean and SD of each alpha
+# draws for overall mean
+m1.mu_a_sims <- as.matrix(m1, 
+                       pars = "(Intercept)")
+# draws for error
+m1.u_sims <- as.matrix(m1, 
+                    regex_pars = "b\\[\\(Intercept\\) year\\:")
+# draws for the varying intercepts               
+m1.a_sims <- plogis(as.numeric(m1.mu_a_sims) + m1.u_sims)
+# Posterior mean and SD of each alpha
+m1.mean <- apply(X = m1.a_sims,     # posterior mean
+                 MARGIN = 2,
+                 FUN = mean)
+m1.sd <- apply(X = m1.a_sims,       # posterior SD
+               MARGIN = 2,
+               FUN = sd)
+# Posterior median and 95% credible interval
+m1.quant <- apply(X = m1.a_sims,
+                  MARGIN = 2,
+                  FUN = quantile,
+                  probs = c(0.025, 0.50, 0.975))
+m1.quant <- data.frame(t(m1.quant))
+names(m1.quant) <- c("Q2.5", "Q50", "Q97.5")
+# Combine summary statistics of posterior simulation draws
+m1.df <- data.frame(m1.mean, m1.sd, m1.quant)
+m1.df$year <- substring(rownames(m1.df), 20, 23)
+```
+
+Below is the posterior of the model (the regularized estimate), compared to the
+raw sample mean smoking rate. I've included the 95 percent uncertainty interval 
+to get a bit of a deeper sense of the model. Even with this simple model, it's 
+easy to how the prior information and the estimated structure of year-to-year
+changes islimiting the swings from year to year, and pulling the smoking rate 
+towards the mean. Small changes, like 2012-2013, are barely affected, while 
+implausibly large changes are regularized quite a bit. I've used the default 
+priors in rstanarm, which are quite flat. Steeper (more conservative) priors 
+would regularize the estimates even further.
+
+```{r, echo=FALSE}
+# Plot sample smoking prevalence and overlay estimated intercepts
+sample_smoking_prevalence <- model_data %>%
+  group_by(year) %>%
+  summarise(sample_smoking_prevalence=mean(smoker)*100,
+            group_size=n(),
+            se=sqrt(var(smoker)/n())*100)
+ggplot(data = sample_smoking_prevalence,
+       aes(year, sample_smoking_prevalence, group=1)) +
+  geom_line(color = "#97d8f2", size = 2) +
+  theme_classic() +
+  geom_line(data = m1.df,
+            aes(year, m1.mean*100, group=1), size=2,  color="#d9a472") +
+  geom_ribbon(aes(x = year,
+                  ymin = (m1.mean - m1.sd)*100,
+                  ymax = (m1.mean + m1.sd)*100), alpha=0.2) +
+  xlab("") + scale_x_discrete(breaks=seq(2009, 2016, 1)) +
+  ylab("Sample smoking prevalence (percent)") +
+  geom_text(aes(label = "Sample mean", x = 1, y = 23.7), color="#97d8f2") +
+  geom_text(aes(label = "Regularized \n estimate", x = 1, y = 22.7), color="#d9a472")
+```
+
+## Stay tuned - more detailed models to come...
+
+
+
+
+
+
+
+
 
 
 

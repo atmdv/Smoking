@@ -29,4 +29,31 @@ I've added some error bars showing two standard deviations to get a feel for the
 Enter Bayesian data analysis
 ----------------------------
 
-Stay tuned...
+So what can we do to improve out understanding of the survey data? Bayesian modelling will allow us to incorporate prior knowledge into the data analysis. Why is this is useful? We've already realized that the swings in the smoking rate from year to year are implausible because we have an idea about how smoking rates change over time. The Bayesian approach allow us to incorporate this knowledge through a prior distribution.
+
+To get a sense of how this works, I've estimated a simple model where the smoking rates depend only on the year, but allow for there to be a relationship between rates in different years. Below is what the data looks like.
+
+``` r
+str(model_data)
+```
+
+    ## 'data.frame':    40258 obs. of  4 variables:
+    ##  $ smoker   : logi  FALSE FALSE FALSE FALSE TRUE FALSE ...
+    ##  $ female   : 'labelled' num  0 0 0 1 1 0 1 1 1 1 ...
+    ##   ..- attr(*, "labels")= Named num  1 2
+    ##   .. ..- attr(*, "names")= chr  "mand" "kvinde"
+    ##  $ age_group: Factor w/ 7 levels "1","2","3","4",..: 4 6 5 5 5 6 2 6 3 2 ...
+    ##  $ year     : Factor w/ 8 levels "2009","2010",..: 1 1 1 1 1 1 1 1 1 1 ...
+
+``` r
+m1 <- stan_glmer(formula = smoker ~ 1 + (1 | year),
+                family = binomial(link = "logit"),
+                data = model_data)
+```
+
+Below is the posterior of the model (the regularized estimate), compared to the raw sample mean smoking rate. Even with this simple model, it's easy to how the prior information and the estimated structure of year-to-year changes is limiting the swings from year to year, and pulling the smoking rate towards the mean. Small changes, like 2012-2013, are barely affected, while implausibly large changes are regularized quite a bit. I've used the default priors in rstanarm, which are quite flat. Steeper (more conservative) priors would regularize the estimates even further.
+
+![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
+
+Stay tuned - more to come...
+----------------------------
